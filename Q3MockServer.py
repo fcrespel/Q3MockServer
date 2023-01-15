@@ -114,7 +114,7 @@ class Q3MockServer(socketserver.BaseRequestHandler):
   def getchallenge(self, challenge="", *args):
     serverchallenge = ((random.randint(0, 32767) << 16) ^ random.randint(0, 32767)) ^ int(time.time())
     self.logger.info("client challenge=%s, server challenge=%s", challenge, serverchallenge)
-    return "challengeResponse\n" + str(serverchallenge) + "\n" + challenge + "\n"
+    return "challengeResponse " + str(serverchallenge) + " " + challenge + "\n"
 
   def connect(self, userinfo="", *args):
     self.logger.info("userinfo=%s", self.info2dict(userinfo))
