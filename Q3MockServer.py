@@ -74,22 +74,23 @@ class Q3MockServer(socketserver.BaseRequestHandler):
     req_raw = self.request[0]
     self.logger.debug("<<< %s %s", addr, req_raw)
     if req_raw[0:4] == self.header:
-      req = req_raw[4:].decode("ascii").strip().split()
+      req = req_raw[4:].strip().split()
+      cmd = req[0].decode("ascii")
       resp = None
-      if req[0] == "getinfo":
+      if cmd == "getinfo":
         resp = self.getinfo(*req[1:])
-      elif req[0] == "getstatus":
+      elif cmd == "getstatus":
         resp = self.getstatus(*req[1:])
-      elif req[0] == "getchallenge":
+      elif cmd == "getchallenge":
         resp = self.getchallenge(*req[1:])
-      elif req[0] == "connect":
+      elif cmd == "connect":
         resp = self.connect(*req[1:])
-      elif req[0] == "rcon":
+      elif cmd == "rcon":
         resp = self.rcon(*req[1:])
-      elif req[0] == "disconnect":
+      elif cmd == "disconnect":
         pass
       else:
-        self.logger.error("Invalid command from %s: %s", addr[0], req[0])
+        self.logger.error("Invalid command from %s: %s", addr[0], cmd)
       if resp:
         resp_raw = self.header + resp.encode("ascii")
         self.logger.debug(">>> %s %s", addr, resp_raw)
@@ -97,30 +98,29 @@ class Q3MockServer(socketserver.BaseRequestHandler):
     else:
       self.logger.error("Invalid packet from %s", addr[0])
 
-  def getinfo(self, challenge="", *args):
+  def getinfo(self, challenge=b"", *args):
     self.logger.info("client challenge=%s", challenge)
     serverinfo = self.server.serverinfo.copy()
     if challenge:
-      serverinfo["challenge"] = challenge
+      serverinfo["challenge"] = challenge.decode("ascii")
     return "infoResponse\n" + self.dict2info(serverinfo) + "\n"
 
-  def getstatus(self, challenge="", *args):
+  def getstatus(self, challenge=b"", *args):
     self.logger.info("client challenge=%s", challenge)
     serverstatus = self.server.serverstatus.copy()
     if challenge:
-      serverstatus["challenge"] = challenge
+      serverstatus["challenge"] = challenge.decode("ascii")
     return "statusResponse\n" + self.dict2info(serverstatus) + "\n"
 
-  def getchallenge(self, challenge="", *args):
+  def getchallenge(self, challenge=b"", *args):
     serverchallenge = ((random.randint(0, 32767) << 16) ^ random.randint(0, 32767)) ^ int(time.time())
     self.logger.info("client challenge=%s, server challenge=%s", challenge, serverchallenge)
-    return "challengeResponse " + str(serverchallenge) + " " + challenge + "\n"
+    return "challengeResponse " + str(serverchallenge) + " " + challenge.decode("ascii") + "\n"
 
-  def connect(self, userinfo="", *args):
-    self.logger.info("userinfo=%s", self.info2dict(userinfo))
+  def connect(self, userinfo=b"", *args):
     return "print\n" + self.server.message + "\n"
 
-  def rcon(self, password="", *args):
+  def rcon(self, password=b"", *args):
     self.logger.info("command=%s", args)
     return "print\nRcon is not supported.\n"
 
@@ -142,7 +142,8 @@ def parse_kvps(kvps):
   if kvps:
     for kvp in kvps:
       kv = kvp.split("=", 1)
-      d[kv[0]] = kv[1]
+      if len(kv) == 2:
+        d[kv[0]] = kv[1]
   return d
 
 def parse_args():
