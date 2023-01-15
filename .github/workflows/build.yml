@@ -28,4 +28,9 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build and publish image
-      run: docker buildx build --platform ${DOCKER_PLATFORM} --tag "${DOCKER_REGISTRY}/${DOCKER_REPO}/${DOCKER_IMAGE}:${DOCKER_TAG}" --push .
+      run: |
+        docker buildx build --platform ${DOCKER_PLATFORM} --tag "${DOCKER_REGISTRY}/${DOCKER_REPO}/${DOCKER_IMAGE}:${DOCKER_TAG}" --push .
+        if [ "${{ github.ref_type }}" != "tag" ]; then
+          DOCKER_TAG="${{ github.ref_name }}-$(date +'%Y%m%d-%H%M')-$(echo ${{ github.sha }} | head -c 7)"
+          docker buildx build --platform ${DOCKER_PLATFORM} --tag "${DOCKER_REGISTRY}/${DOCKER_REPO}/${DOCKER_IMAGE}:${DOCKER_TAG}" --push .
+        fi
